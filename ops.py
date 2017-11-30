@@ -32,7 +32,6 @@ def deconv2d(x, out_size, k=3, d=1, bn=True, scope='deconv2d'):
     in_size = tf.to_int32(tf.shape(x)[3])
 
     output_shape = tf.stack([batch_size, h, w, tf.Dimension(out_size)])
-    print(output_shape)
 
     W = tf.get_variable('Weight', [k, k, out_size, in_size],
         initializer=tf.contrib.layers.xavier_initializer())

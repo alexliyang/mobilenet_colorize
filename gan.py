@@ -11,34 +11,6 @@ from ops import resize, conv2d, fc
 tf.app.flags.DEFINE_boolean('train', True, 'is train mode?')
 FLAGS = tf.app.flags.FLAGS
 
-
-def discriminator(x, reuse=False):
-  with tf.variable_scope('discriminator', reuse=reuse):
-    print(x)
-    net = resize(x, (56, 56))
-    print(net)
-    net = conv2d(net, 3, 32, scope='conv_1')
-    print(net)
-    net = conv2d(net, 32, 64, scope='conv_2')
-    print(net)
-    net = tf.reshape(net, [-1, 56 * 56 * 64])
-    print(net)
-    code = fc(net, 16, scope='fc_3')
-    net = fc(code, 56 * 56 * 64, scope='fc_4')
-    print(net)
-    net = tf.reshape(net, [-1, 56, 56, 64])
-    print(net)
-    net = conv2d(net, 64, 32, scope='conv_5')
-    print(net)
-    net = conv2d(net, 32, 3, scope='conv_6', bn=False)
-    print(net)
-    net = resize(x, (224, 224))
-    print(net)
-
-    loss = tf.sqrt(2 * tf.nn.l2_loss(x - net)) / (224*224)
-
-    return net, loss
-
 # GAN Hyperparameter
 _lambda = 0.001
 gamma = 0.75
