@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 def resize(x, shape):
-  return tf.image.resize_images(x, shape)
+  return tf.image.resize_nearest_neighbor(x, shape)
 
 def lrelu(x, a=0.2):
   with tf.name_scope("lrelu"):
@@ -24,14 +24,12 @@ def conv2d(x, in_size, out_size, k=3, d=1, bn=True, scope='conv2d'):
 
     return net
 
-def deconv2d(x, out_size, k=3, d=1, bn=True, scope='deconv2d'):
+def deconv2d(x, in_size, out_size, image_size, k=3, d=1, bn=True, scope='deconv2d'):
   with tf.variable_scope(scope):
-    batch_size = tf.to_int32(tf.shape(x)[0])
-    h = tf.to_int32(tf.shape(x)[1])
-    w = tf.to_int32(tf.shape(x)[2])
-    in_size = tf.to_int32(tf.shape(x)[3])
+    h = image_size
+    w = image_size
 
-    output_shape = tf.stack([batch_size, h, w, tf.Dimension(out_size)])
+    output_shape = [int(x.shape[0]), h, w, out_size]
 
     W = tf.get_variable('Weight', [k, k, out_size, in_size],
         initializer=tf.contrib.layers.xavier_initializer())

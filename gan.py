@@ -3,9 +3,9 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from matplotlib import pyplot as plt
-#from mobilenet_v1 import mobilenet_v1
+from mobilenet_v1 import mobilenet_v1
 from colorutil import *
-from model import generator
+from model import generator, discriminator
 from ops import resize, conv2d, fc
 
 tf.app.flags.DEFINE_boolean('train', True, 'is train mode?')
@@ -13,12 +13,12 @@ FLAGS = tf.app.flags.FLAGS
 
 # GAN Hyperparameter
 _lambda = 0.001
-gamma = 0.75
+gamma = 0.95
 
 if FLAGS.train == True:
   filenames = sorted(glob.glob('./images/img/*.jpg'))
   batch_size = 5
-  epoch = 20
+  epoch = 2
 else:
   filenames = sorted(glob.glob('./test_images/*.jpg'))
   batch_size = 1
@@ -86,12 +86,12 @@ global_step = tf.Variable(0, trainable=False, name='global_step')
 
 is_training = True
 
-learn_rate = tf.train.exponential_decay(2e-3, global_step, 1000, 0.95, staircase=True)
+learn_rate = tf.maximum(tf.train.exponential_decay(1e-2, global_step, 300, 0.95, staircase=True), 1e-5)
 
-comp_out = generator(grayscale_lab)
+comp_out = generator(None, grayscale_lab)
 net_rgb = lab_to_rgb(comp_out)
 
-dis_image, dis_error = discriminator(r2l_images)
+dis_image, dis_error = discriminator(r2l_images, reuse=False)
 gen_image, gen_error = discriminator(comp_out, reuse=True)
 
 dis_image_rgb = lab_to_rgb(dis_image)
@@ -126,12 +126,12 @@ net_mean = tf.reduce_mean(comp_out)
 with tf.Session() as sess:
   if FLAGS.train == True:
     sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-    #var_list = []
-    #for x in slim.get_model_variables():
-    #  if not ("MobilenetV1/AuxLogits" in x.op.name or "MobilenetV1/Logits" in x.op.name or "MobilenetV1" not in x.op.name):
-    #    var_list.append(x)
-    #mobilenet_restore = slim.assign_from_checkpoint_fn('checkpoints/mobilenet_v1_1.0_224.ckpt', var_list, ignore_missing_vars=True)
-    #mobilenet_restore(sess)
+    var_list = []
+    for x in slim.get_model_variables():
+      if not ("MobilenetV1/AuxLogits" in x.op.name or "MobilenetV1/Logits" in x.op.name or "MobilenetV1" not in x.op.name):
+        var_list.append(x)
+    mobilenet_restore = slim.assign_from_checkpoint_fn('checkpoints/mobilenet_v1_1.0_224.ckpt', var_list, ignore_missing_vars=True)
+    mobilenet_restore(sess)
 
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
@@ -178,15 +178,15 @@ with tf.Session() as sess:
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
     #sess.run([tf.local_variables_initializer()])
 
-    var_list = []
-    for x in slim.get_model_variables():
-      if not ("MobilenetV1/AuxLogits" in x.op.name or "MobilenetV1/Logits" in x.op.name or "MobilenetV1" not in x.op.name):
-        var_list.append(x)
-    mobilenet_restore = slim.assign_from_checkpoint_fn('checkpoints/mobilenet_v1_1.0_224.ckpt', var_list, ignore_missing_vars=True)
-    mobilenet_restore(sess)
+    #var_list = []
+    #for x in slim.get_model_variables():
+    #  if not ("MobilenetV1/AuxLogits" in x.op.name or "MobilenetV1/Logits" in x.op.name or "MobilenetV1" not in x.op.name):
+    #    var_list.append(x)
+    #mobilenet_restore = slim.assign_from_checkpoint_fn('checkpoints/mobilenet_v1_1.0_224.ckpt', var_list, ignore_missing_vars=True)
+    #mobilenet_restore(sess)
 
     saver = tf.train.Saver()
-    saver.restore(sess, './checkpoints/model.ckpt')
+    saver.restore(sess, './checkpoints/model_gan1.ckpt')
 
     try:
       step = 0
@@ -194,8 +194,8 @@ with tf.Session() as sess:
         step += 1
         result_image = sess.run([inputs, grayscale, net_rgb])
         step_view = result_image[1][0]
-        #step_view = concat_images(result_image[1][0], result_image[0][0])
-        #step_view = concat_images(step_view, result_image[2][0])
+        step_view = concat_images(step_view, result_image[0][0])
+        step_view = concat_images(step_view, result_image[2][0])
         plt.imsave("outputs/" + str(step) + ".jpg", step_view)
     except tf.errors.OutOfRangeError:
       print('Done training -- epoch limit reached')

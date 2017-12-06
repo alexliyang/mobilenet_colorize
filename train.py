@@ -121,7 +121,7 @@ def resize(x, shape):
   return tf.image.resize_images(x, shape)
 
 # 7 x 7 x 1024 -> 14 x 14 x 512
-learn_rate = tf.train.exponential_decay(2e-4, global_step, 1000, 0.95, staircase=True)
+learn_rate = tf.train.exponential_decay(2e-4, global_step, 3000, 0.95, staircase=True)
 
 with tf.variable_scope('generator'):
   W1 = tf.get_variable('weight1', [3, 3, 512, 1024], initializer=initializer)
