@@ -8,7 +8,10 @@ def lrelu(x, a=0.2):
     x = tf.identity(x)
     return (0.5 * (1 + a)) * x + (0.5 * (1 - a)) * tf.abs(x)
 
-def conv2d(x, in_size, out_size, k=3, d=1, bn=True, scope='conv2d'):
+def _dropout(x, rate=0.5):
+  return tf.nn.dropout(x, rate)
+
+def conv2d(x, in_size, out_size, k=3, d=1, bn=True, scope='conv2d', dropout=True, dr=0.5):
   with tf.variable_scope(scope):
     W = tf.get_variable('Weight', [k, k, in_size, out_size],
         initializer=tf.contrib.layers.xavier_initializer())
@@ -22,9 +25,12 @@ def conv2d(x, in_size, out_size, k=3, d=1, bn=True, scope='conv2d'):
       net = tf.contrib.layers.batch_norm(net)
       net = lrelu(net)
 
+      if dropout == True:
+        net = _dropout(net, 1-dr)
+
     return net
 
-def deconv2d(x, in_size, out_size, image_size, k=3, d=1, bn=True, scope='deconv2d'):
+def deconv2d(x, in_size, out_size, image_size, k=3, d=1, bn=True, scope='deconv2d', dropout=True, dr=0.5):
   with tf.variable_scope(scope):
     h = image_size
     w = image_size
@@ -42,6 +48,9 @@ def deconv2d(x, in_size, out_size, image_size, k=3, d=1, bn=True, scope='deconv2
     if bn == True:
       net = tf.contrib.layers.batch_norm(net)
       net = lrelu(net)
+
+      if dropout == True:
+        net = _dropout(net, 1-dr)
 
     return net
 

@@ -13,12 +13,12 @@ FLAGS = tf.app.flags.FLAGS
 
 # GAN Hyperparameter
 _lambda = 0.001
-gamma = 0.95
+gamma = 0.3
 
 if FLAGS.train == True:
   filenames = sorted(glob.glob('./images/img/*.jpg'))
   batch_size = 5
-  epoch = 2
+  epoch = 20
 else:
   filenames = sorted(glob.glob('./test_images/*.jpg'))
   batch_size = 1
@@ -86,13 +86,13 @@ global_step = tf.Variable(0, trainable=False, name='global_step')
 
 is_training = True
 
-learn_rate = tf.maximum(tf.train.exponential_decay(1e-2, global_step, 300, 0.95, staircase=True), 1e-5)
+learn_rate = tf.maximum(tf.train.exponential_decay(1e-2, global_step, 1000, 0.95, staircase=True), 1e-7)
 
 comp_out = generator(None, grayscale_lab)
 net_rgb = lab_to_rgb(comp_out)
 
-dis_image, dis_error = discriminator(r2l_images, reuse=False)
-gen_image, gen_error = discriminator(comp_out, reuse=True)
+dis_image, dis_error = discriminator(r2l_images, reuse=False, learn_rate=learn_rate)
+gen_image, gen_error = discriminator(comp_out, reuse=True, learn_rate=learn_rate)
 
 dis_image_rgb = lab_to_rgb(dis_image)
 gen_image_rgb = lab_to_rgb(gen_image)
@@ -110,8 +110,8 @@ t_vars = tf.trainable_variables()
 g_vars = [var for var in t_vars if 'generator' in var.name]
 d_vars = [var for var in t_vars if 'discriminator' in var.name]
 
-optimizer_g = tf.train.AdamOptimizer(learn_rate*5, beta1=0.5)
-optimizer_d = tf.train.AdamOptimizer(learn_rate, beta1=0.5)
+optimizer_g = tf.train.AdamOptimizer(learn_rate*5)
+optimizer_d = tf.train.AdamOptimizer(learn_rate)
 
 op1 = optimizer_g.minimize(loss_1, var_list=g_vars)
 op2 = optimizer_d.minimize(loss_2, var_list=d_vars)
@@ -152,7 +152,7 @@ with tf.Session() as sess:
           step_view = concat_images(step_view, result_image[2][0])
           step_view = concat_images(step_view, result_image[3][0])
           step_view = concat_images(step_view, result_image[4][0])
-          plt.imsave("summary_gan_1/" + str(step) + ".jpg", step_view)
+          plt.imsave("summary_gan1/" + str(step) + ".jpg", step_view)
 
           result_summary = sess.run([M, learn_rate, gen_error, dis_error, k])
           print(f'step: {step}, M: {result_summary[0]}, learn_rate: {result_summary[1]}, l_gen: {result_summary[2]}, l_disc: {result_summary[3]}, k: {result_summary[4]}')
@@ -194,7 +194,7 @@ with tf.Session() as sess:
         step += 1
         result_image = sess.run([inputs, grayscale, net_rgb])
         step_view = result_image[1][0]
-        step_view = concat_images(step_view, result_image[0][0])
+        #step_view = concat_images(step_view, result_image[0][0])
         step_view = concat_images(step_view, result_image[2][0])
         plt.imsave("outputs/" + str(step) + ".jpg", step_view)
     except tf.errors.OutOfRangeError:
